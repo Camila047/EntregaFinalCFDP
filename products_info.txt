@@ -1,0 +1,5 @@
+1;Leche;3500
+2;Pan Tostado;6000
+3;Panela;4500
+4;Tostadas;3500
+5;Huevos;20000
