@@ -13,11 +13,9 @@ public class Main {
 	/*
 	 * Inner Classes Salesman
 	 * 
-	 * Attributes: 
-	 * documentType: Type of salesman document. 
-	 * documentNumber: Number of the document. 
-	 * firstName: First name of the seller. 
-	 * lastName: Last name of the seller.
+	 * Attributes: documentType: Type of salesman document. documentNumber: Number
+	 * of the document. firstName: First name of the seller. lastName: Last name of
+	 * the seller.
 	 */
 
 	static class Salesman {
@@ -36,15 +34,15 @@ public class Main {
 		}
 
 		/*
-		 * getTotalSales: 
-		 * Calculates the total sales of the seller based on the prices of the products.
+		 * getTotalSales: Calculates the total sales of the seller based on the prices
+		 * of the products.
 		 */
 		public double getTotalSales(Map<Integer, Product> products) {
 			double total = 0;
 			for (Sale sale : sales) {
 				Product product = products.get(sale.productId);
 				if (product != null) {
-					total += sale.quantity * product.price;
+					total += Math.abs(sale.quantity) * Math.abs(product.price);
 				}
 			}
 			return total;
@@ -143,31 +141,54 @@ public class Main {
 	}
 
 	/*
-	 * 
-	 * loadSales Purpose: Load sales for each salesperson from txt files. Process:
-	 * For each salesperson, form the file name based on the document number. Check
-	 * if the file exists. Read the file line by line (skipping the first line
-	 * containing the document type and number). Add the sales to the corresponding
-	 * Salesman object.
+	 * The loadSales method loads sales files for each salesman in the salesmen
+	 * list, searching for sequential files in a specified directory. For each
+	 * salesman, it constructs a base name using the document number and an index,
+	 * and then attempts to open sales files with names such as
+	 * documentNumber_sales_1.txt, documentNumber_sales_2.txt, etc. If the file
+	 * exists, it reads line by line, omitting the first line containing the
+	 * document type and number. Each remaining line represents a sale, separated by
+	 * semicolon, where the product ID and quantity sold are extracted and added to
+	 * the sales list of the vendor. If a file does not exist, the process stops for
+	 * that salesperson. Also, if no file is found, a warning is issued.
 	 * 
 	 */
+
 	public static void loadSales(String directory, List<Salesman> salesmen) throws IOException {
 		for (Salesman salesman : salesmen) {
-			String filename = directory + "/" + salesman.documentNumber + "_sales.txt";
-			File file = new File(filename);
-			if (file.exists()) {
-				try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-					String line;
-					reader.readLine(); // Read the first line containing the document type and document number
-					while ((line = reader.readLine()) != null) {
-						String[] parts = line.split(";");
-						int productId = Integer.parseInt(parts[0]);
-						int quantity = Integer.parseInt(parts[1]);
-						salesman.sales.add(new Sale(productId, quantity));
+			String baseFilename = directory + "/" + salesman.documentNumber + "_sales";
+			int fileIndex = 1;
+
+			while (true) {
+				String filename = baseFilename + "_" + fileIndex + ".txt";
+				File file = new File(filename);
+
+				if (file.exists()) {
+					System.out.println("Procesando archivo de ventas: " + filename);
+					try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+						String line;
+						reader.readLine(); 
+						while ((line = reader.readLine()) != null) {
+							String[] parts = line.split(";");
+							if (parts.length >= 2) {
+								try {
+									int productId = Integer.parseInt(parts[0].trim());
+									int quantity = Math.abs(Integer.parseInt(parts[1].trim())); 
+									salesman.sales.add(new Sale(productId, quantity));
+								} catch (NumberFormatException e) {
+									System.err.println("Formato incorrecto en la línea: " + line);
+								}
+							}
+						}
 					}
+					fileIndex++;
+				} else {
+					break;
 				}
-			} else {
-				System.err.println("El archivo de ventas no existe: " + filename);
+			}
+
+			if (fileIndex == 1) {
+				System.err.println("No se encontraron archivos de ventas para el vendedor: " + salesman.documentNumber);
 			}
 		}
 	}
@@ -235,18 +256,18 @@ public class Main {
 	}
 
 	/*
-	 * Main 
-	 * Upload vendor information from a text file Upload product information from a
-	 * text file Upload sales from corresponding files for each salesperson Creates
-	 * a CSV file with a sales report for each salesperson Creates a CSV file with a
-	 * report of products sold Prints a message indicating that the reports were
-	 * generated correctly Handles possible input/output exceptions and displays an
-	 * error message
+	 * Main Upload vendor information from a text file Upload product information
+	 * from a text file Upload sales from corresponding files for each salesperson
+	 * Creates a CSV file with a sales report for each salesperson Creates a CSV
+	 * file with a report of products sold Prints a message indicating that the
+	 * reports were generated correctly Handles possible input/output exceptions and
+	 * displays an error message
 	 */
 	public static void main(String[] args) {
 		try {
 			List<Salesman> salesmen = loadSalesmenInfo("salesmen_info.txt");
 			Map<Integer, Product> products = loadProducts("products_info.txt");
+
 			loadSales(".", salesmen);
 			createSalesReportFile(salesmen, products, "sales_report.csv");
 			createProductReportFile(products, salesmen, "product_report.csv");
